@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using OpenWeatherMap_MunichWeather.model;
 using OpenWeatherMap_MunichWeather.Models;
+using OpenWeatherMapSharp;
+using OpenWeatherMapSharp.Enums;
+using OpenWeatherMapSharp.Utils;
+using OpenWeatherMapSharp.Models;
 
 namespace OpenWeatherMap_MunichWeather
 {
@@ -27,31 +31,17 @@ namespace OpenWeatherMap_MunichWeather
                              .Build();
 
             string apiKey = config["ApiKey"]; //Robert Schlaeger API Key for OpenWeatherMap
+            OpenWeatherMapService weatherService = new OpenWeatherMapService(apiKey);
 
-            HttpResponseMessage result = await _http.GetAsync("http://api.openweathermap.org/data/2.5/weather?id=3220838&units=metric&lang=de&APPID=" + apiKey);
-            var resOb = JsonConvert.DeserializeObject<OpenWeatherMapsModel>(await result.Content.ReadAsStringAsync());
-
-            log.Info(ParseExternalModel(resOb).City);
+            OpenWeatherMapServiceResponse<WeatherRoot> res = await weatherService.GetWeatherAsync("3220838", LanguageCode.DE);
+            log.Info(res.Response.CityId.ToString());
+            
 
             //TODO: Implement Parsing
             //TODO: Implement Connection to Blob Storage and dropping of the parsed data
-            
+
 
         }
         
-        /** Parse the external model to fit into our Weather model
-         * @param model The model to pass into
-         */
-        static private ChandelierModel ParseExternalModel(OpenWeatherMapsModel model)
-        {
-            //TODO: implement logic here
-            ChandelierModel result = new ChandelierModel();
-            result.City = model.name.Split(' ')[1];
-            result.CloudStatus = model.clouds.all;
-            result.Temperature = model.main.temp;
-            return result;
-        }
-
-
     }
 }
