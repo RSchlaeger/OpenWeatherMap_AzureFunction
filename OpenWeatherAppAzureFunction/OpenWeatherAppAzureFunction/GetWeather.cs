@@ -11,6 +11,7 @@ using OpenWeatherMapSharp;
 using OpenWeatherMapSharp.Enums;
 using OpenWeatherMapSharp.Utils;
 using OpenWeatherMapSharp.Models;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace OpenWeatherMap_MunichWeather
 {
@@ -22,7 +23,7 @@ namespace OpenWeatherMap_MunichWeather
          * Once the data is loaded and parsed into the desired format it is passed along to a BlobStorage for further processing
          */
         [FunctionName("GetWeather")]
-        public static async Task Run([TimerTrigger("0 */15 * * * *")]TimerInfo myTimer, TraceWriter log, ExecutionContext context)
+        public static async Task Run([TimerTrigger("0 */15 * * * *")]TimerInfo myTimer, TraceWriter log, ExecutionContext context, [Blob("cache/weatherData.json",System.IO.FileAccess.Write)]CloudBlockBlob blob)
         {
             var config = new ConfigurationBuilder()
                              .SetBasePath(context.FunctionAppDirectory)
@@ -33,12 +34,15 @@ namespace OpenWeatherMap_MunichWeather
             string apiKey = config["ApiKey"]; //Robert Schlaeger API Key for OpenWeatherMap
             OpenWeatherMapService weatherService = new OpenWeatherMapService(apiKey);
 
-            OpenWeatherMapServiceResponse<WeatherRoot> res = await weatherService.GetWeatherAsync("3220838", LanguageCode.DE);
+            OpenWeatherMapServiceResponse<WeatherRoot> res = await weatherService.GetWeatherAsync("München", LanguageCode.DE);
             log.Info(res.Response.CityId.ToString());
-            
+
+            var outputJson = JsonConvert.SerializeObject(res.Response);
+            blob.Properties.ContentType = "application/json";
+            await blob.UploadTextAsync(outputJson);
 
             //TODO: Implement Parsing
-            //TODO: Implement Connection to Blob Storage and dropping of the parsed data
+           
 
 
         }
